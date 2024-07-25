@@ -1,0 +1,5 @@
+name: MinecraftDiscordSynchronisation
+version: '1.0'
+main: de.peaqe.minecraftDiscordSynchronisation.MinecraftDiscordSynchronisation
+api-version: '1.21'
+authors: [ peaqe ]
