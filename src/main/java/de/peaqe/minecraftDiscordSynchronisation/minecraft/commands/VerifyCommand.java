@@ -1,6 +1,8 @@
 package de.peaqe.minecraftDiscordSynchronisation.minecraft.commands;
 
 import de.peaqe.minecraftDiscordSynchronisation.MinecraftDiscordSynchronisation;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.User;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
 
 /**
  * *
@@ -84,20 +87,52 @@ public class VerifyCommand implements CommandExecutor, TabExecutor {
             var userObject = verifyCodeManager.getUserObject(code);
             this.minecraftDiscordSynchronisation.getUserDatabase().save(userObject);
 
-            var user = this.minecraftDiscordSynchronisation.getSynchBot().getJda().getUserById(userObject.getUserId());
-            if (user == null) return true;
+            // Send success message
+            var jda = this.minecraftDiscordSynchronisation.getSynchBot().getJda();
+            var textChannelId = this.minecraftDiscordSynchronisation.getDiscordConfig().get("channelId");
 
-            // Manche deaktivieren Direktnachrichten von Usern. Daher der Nullcheck ohne messaging
-            user.openPrivateChannel().queue(privateChannel -> {
-                        privateChannel.sendMessage("Du wurdest mit dem Minecraft Account %s verknüpft."
-                                .formatted(player.getName())).queue();
-            });
+            var guild = jda.getGuildById(this.minecraftDiscordSynchronisation.getDiscordConfig().get("guildId"));
+            if (guild == null) {
+                this.minecraftDiscordSynchronisation.getLogger().log(Level.SEVERE,
+                        "Failed to get guild from configured guildId!");
+                return true;
+            }
+
+            var textChannel = guild.getTextChannelById(textChannelId);
+            if (textChannel == null) {
+                this.minecraftDiscordSynchronisation.getLogger().log(Level.SEVERE,
+                        "Failed to send success message to the configured textchannel!");
+                return true;
+            }
+
+            var user = jda.getUserById(userObject.getUserId());
+            if (user == null) {
+                this.minecraftDiscordSynchronisation.getLogger().log(Level.SEVERE,
+                        "Failed to send success message because we couldn't get a user from the memberId!");
+                return true;
+            }
+
+            // Extra Methode, da ich den generellen Ablauf nicht unterbrechen möchte.
+            // Falls das Fehler wirft, wird trotzdem die Successnachricht gesendet.
+            this.modifyNickname(guild, user, player);
+
+            textChannel.sendMessage(this.minecraftDiscordSynchronisation.getSynchBot().getPrefix() +
+                    "Du wurdest mit dem Account %s verknüpft %s".formatted(player.getName(), user.getName())).queue();
+
+            this.minecraftDiscordSynchronisation.getServer().getScheduler().runTaskLaterAsynchronously(
+                    this.minecraftDiscordSynchronisation, () -> {
+
+                        var lastMessageId = textChannel.getLatestMessageId();
+                        textChannel.deleteMessageById(lastMessageId).queue();
+
+                    }, 20 * 20 // 20 Seconds
+            );
 
             return true;
         }
 
         player.sendMessage(this.minecraftDiscordSynchronisation.getPrefix() +
-                "Bitte verwende: §7/§everify §8<§ecode§8>");
+                "Bitte verwende: §7/§everify §7<§ecode§7>");
 
         return false;
     }
@@ -107,5 +142,18 @@ public class VerifyCommand implements CommandExecutor, TabExecutor {
                                                 @NotNull String label, @NotNull String[] args) {
         return new ArrayList<>();
     }
+
+    private void modifyNickname(Guild guild, User user, Player player) {
+        var guildMember = guild.getMemberById(user.getId());
+
+        if (guildMember == null) {
+            this.minecraftDiscordSynchronisation.getLogger().log(Level.SEVERE,
+                    "Failed to modify nickname because user couldn't found!");
+            return;
+        }
+
+        guild.modifyNickname(guildMember, player.getName()).queue();
+    }
+
 }
 
