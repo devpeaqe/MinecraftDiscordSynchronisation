@@ -30,8 +30,7 @@ public class SynchBot extends DiscordBot {
 
     @Override
     public String getToken() {
-        // Sollte man nicht zeigen aber ist nur zum Anschauen c:
-        return "MTI2NTc2OTQ3Njg5MzE4NDE0Mg.G1YCoS.zPap3hFgZKlQpDomgg5hhYCPXKC3n4BWaMRR2I";
+        return this.minecraftDiscordSynchronisation.getDiscordConfig().get("token");
     }
 
     @Override
