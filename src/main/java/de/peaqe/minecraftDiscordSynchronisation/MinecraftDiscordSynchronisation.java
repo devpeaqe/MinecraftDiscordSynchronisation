@@ -2,6 +2,7 @@ package de.peaqe.minecraftDiscordSynchronisation;
 
 import de.peaqe.minecraftDiscordSynchronisation.api.provider.DatabaseConnection;
 import de.peaqe.minecraftDiscordSynchronisation.api.provider.config.DatabaseConfig;
+import de.peaqe.minecraftDiscordSynchronisation.config.DiscordConfig;
 import de.peaqe.minecraftDiscordSynchronisation.database.UserDatabase;
 import de.peaqe.minecraftDiscordSynchronisation.discord.SynchBot;
 import de.peaqe.minecraftDiscordSynchronisation.manager.VerifyCodeManager;
@@ -18,6 +19,7 @@ public final class MinecraftDiscordSynchronisation extends JavaPlugin {
     private String prefix;
     private SynchBot synchBot;
     private VerifyCodeManager verifyCodeManager;
+    private DiscordConfig discordConfig;
 
     @Override
     public void onEnable() {
@@ -25,16 +27,13 @@ public final class MinecraftDiscordSynchronisation extends JavaPlugin {
     }
 
     private void registerServices() {
-
         this.initializeDatabase();
-        this.registerBots();
 
-        this.prefix = "§6§lTwerion §7§l» §7";
-        this.verifyCodeManager = new VerifyCodeManager();
+        this.registerManager();
+        this.registerBots();
 
         this.registerListener();
         this.registerCommands();
-
     }
 
     private void initializeDatabase() {
@@ -47,6 +46,12 @@ public final class MinecraftDiscordSynchronisation extends JavaPlugin {
                 databaseConfig.getInt("port")
         );
         this.userDatabase = new UserDatabase(this);
+    }
+
+    private void registerManager() {
+        this.prefix = "§6§lTwerion §7§l» §7";
+        this.verifyCodeManager = new VerifyCodeManager();
+        this.discordConfig = new DiscordConfig(this);
     }
 
     private void registerBots() {
